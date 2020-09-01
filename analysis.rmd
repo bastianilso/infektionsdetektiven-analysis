@@ -1,0 +1,129 @@
+---
+title: "Infektionsdetektiven"
+author: "Bastian Ilsø Hougaard, Hendrik Knoche"
+date: "6/25/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(RMySQL)
+library(tidyr)
+library(dplyr)
+library(knitr)
+library(lubridate)
+options(digits.secs = 4) # enable millisecond display in console.
+creds <- read.csv("credentials.csv", header=TRUE,sep=",", colClasses=c("character","character","character","character"))
+lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
+mydb = dbConnect(MySQL(),
+                 user=creds[1, "username"],
+                 # rstudioapi::askForPassword("Database user"),
+                 password=creds[1, "password"],
+                 # rstudioapi::askForPassword("Database password"),
+                 dbname=creds[1, "dbname"],
+                 host=creds[1, "host"])
+
+RetreiveDataSet <- function(tablename, column, colvalue) {
+  queryString = "SELECT *"
+  queryString = paste(queryString, "FROM",tablename, sep = " ")
+  if (colvalue != "NA") {
+    queryString = paste(queryString, "WHERE",column,"= ",sep=" ")
+    queryString = paste(queryString,"\'",colvalue,"\'",sep="")
+  }
+  print(queryString)
+  res = dbSendQuery(mydb, queryString)
+  df = fetch(res, n=-1)
+  dbClearResult(dbListResults(mydb)[[1]])
+  return(df)
+}
+
+df <- RetreiveDataSet("infektionsdetektiven","NA","NA")
+```
+
+## Introduction
+
+We investigate whether how much time was spent looking at graphs and indicators of stress during the game.
+
+## Overview Stats
+
+
+```{r overview, echo=FALSE}
+overview <- df %>%
+  summarize(
+    no_of_plays = length(unique(PlayID)),
+    played_from = min(Timestamp),
+    played_to = max(Timestamp)
+  )
+kable(overview) # formats the output as a nice table.
+```
+
+## Filtered by Experiment
+Lets examine the data specifically from the day where the classrooms were trying out the game.
+
+
+```{r experiment-stats, echo=FALSE}
+df$Timestamp <- as.POSIXct(df$Timestamp, format = "%Y-%m-%d %H:%M:%OS")
+experiment_start = as.POSIXct("2020-06-11 07:00:00.000", format = "%Y-%m-%d %H:%M:%OS")
+experiment_end = as.POSIXct("2020-06-11 16:00:00.000", format = "%Y-%m-%d %H:%M:%OS")
+grade_3_start = as.POSIXct("2020-06-11 07:45:00.000", format = "%Y-%m-%d %H:%M:%OS")
+grade_3_ended = as.POSIXct("2020-06-11 09:15:00.000", format = "%Y-%m-%d %H:%M:%OS")
+grade_4_start = as.POSIXct("2020-06-11 09:45:00.000", format = "%Y-%m-%d %H:%M:%OS")
+grade_4_ended = as.POSIXct("2020-06-11 11:55:00.000", format = "%Y-%m-%d %H:%M:%OS")
+grade_5_start = as.POSIXct("2020-06-11 12:40:00.000", format = "%Y-%m-%d %H:%M:%OS")
+grade_5_ended = as.POSIXct("2020-06-11 14:45:00.000", format = "%Y-%m-%d %H:%M:%OS")
+
+
+df_experiment <- df %>%
+  filter( Timestamp > experiment_start & Timestamp < experiment_end)
+df_grade3  <- df %>%
+  filter( Timestamp > grade_3_start & Timestamp < grade_3_ended)
+df_grade4  <- df %>%
+  filter( Timestamp > grade_4_start & Timestamp < grade_4_ended)
+df_grade5  <- df %>%
+  filter( Timestamp > grade_5_start & Timestamp < grade_5_ended)
+```
+
+### Third Grade Data
+
+``` {r third-grade, echo=FALSE}
+summaries <- df_grade3 %>%
+  group_by(PlayID) %>%
+  summarize(
+    played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
+    levels_played = sum(Event == "GameInit"),
+    count = length(Timestamp),
+    level_reached = max(LevelNo),
+    device_id = max(DeviceID),
+  )
+kable(summaries)
+```
+
+### Fourth Grade Data
+
+``` {r fourth-grade, echo=FALSE}
+summaries <- df_grade4 %>%
+  group_by(PlayID) %>%
+  summarize(
+    played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
+    levels_played = sum(Event == "GameInit"),
+    count = length(Timestamp),
+    level_reached = max(LevelNo),
+    device_id = max(DeviceID),
+  )
+kable(summaries)
+```
+
+### Fifth Grade Data
+
+``` {r fifth-grade, echo=FALSE}
+summaries <- df_grade5 %>%
+  group_by(PlayID) %>%
+  summarize(
+    played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
+    levels_played = sum(Event == "GameInit"),
+    count = length(Timestamp),
+    level_reached = max(LevelNo),
+    device_id = max(DeviceID),
+  )
+kable(summaries)
+```
