@@ -12,6 +12,7 @@ library(tidyr)
 library(dplyr)
 library(knitr)
 library(lubridate)
+library(ggplot2)
 options(digits.secs = 4) # enable millisecond display in console.
 creds <- read.csv("credentials.csv", header=TRUE,sep=",", colClasses=c("character","character","character","character"))
 lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
@@ -127,3 +128,33 @@ summaries <- df_grade5 %>%
   )
 kable(summaries)
 ```
+
+### Fifth Grade: Statistics Time Viewed
+
+``` {r fifth-grade-stats, echo=FALSE}
+library(lubridate)
+
+D_vt <- df_grade5 %>%
+  group_by(PlayID, LevelNo) %>%
+  filter(Event == 'ViewingStatistics') %>%
+  summarize(ViewStatsTimestamp = Timestamp)
+
+test<-df_grade5 %>% inner_join(D_vt)
+
+test%<>%
+  group_by(PlayID)%>%
+  dplyr::filter(Event == 'NextLevel') %>% 
+  #select(PlayID, Event, Timestamp, ViewStatsTimestamp)%>%
+    mutate(
+      view_time = difftime(Timestamp, ViewStatsTimestamp),
+      prev_view_time = lag(view_time, 1)
+      ) %>% arrange(PlayID, Timestamp)
+
+
+ggplot(data.frame(test[test$prev_view_time<250,]), aes(x=as.numeric(prev_view_time), y=GameTime)) + geom_jitter(width=0.1,size = 1,alpha=.2)+theme_bw()
++ facet_grid(rows = as.factor(LevelNo))
+#ggplot(df, aes(x=df$HowMuchDoYouLikeGame)) + geom_histogram(binwidth = 1)
+#ggplot(test, aes(x=test$LevelNo)) + geom_histogram(binwidth = 1)
+```
+  
+  
