@@ -129,15 +129,15 @@ summaries <- df_grade5 %>%
 kable(summaries)
 ```
 
-### Fifth Grade: Statistics Time Viewed
+### Statistics time viewed, all grades
 
 ``` {r fifth-grade-stats, echo=FALSE}
-D_vt <- df_grade5 %>%
+D_vt <- df_experiment %>%
   group_by(PlayID, LevelNo) %>%
   filter(Event == 'ViewingStatistics') %>%
   summarize(ViewStatsTimestamp = Timestamp)
 
-test<-df_grade5 %>% inner_join(D_vt)
+test<-df_experiment %>% inner_join(D_vt)
 
 test <- test %>%
   mutate(
@@ -169,19 +169,24 @@ test%<>%
       total_played_time = difftime(max(Timestamp), min(Timestamp), units = "sec"),
       ) %>% arrange(PlayID, Timestamp)
 
-#ggplot(test[test$prev_view_time<250,], aes(x=prev_view_time, y=LevelNo)) + geom_jitter(width=.1, size = 1, alpha=.2)
+#test %>% filter(Event == 'NextLevel') %>%
+#ggplot(test[test$prev_view_time<250,], aes_(x=~view_time, y=~max_level_reached)) + geom_jitter(width=.1, size = 1, alpha=.2)
 
+test %>% filter(Event == 'NextLevel') %>%
+ggplot(test, mapping= aes_(x=as.numeric(view_time), y=as.numeric(max_level_reached))) + geom_jitter(width=.1, size=1, alpha=.2) + facet_grid(.  ~LevelNo)
+
+library(reshape2)
 library(plotly)
 
 test %>% filter(Event == 'NextLevel') %>%
   plot_ly() %>%
   add_trace(x=~view_time, y=~max_level_reached,type='scatter',mode='markers')
-  #add_trace(x=~view_time, y=~total_played_time,type='scatter',mode='markers')
-  #ggplot(aes(x=as.numeric(view_time), y=as.numeric(total_played_time)))
 
-#stat_view_effect
-#ggplot(df, aes(x=df$HowMuchDoYouLikeGame)) + geom_histogram(binwidth = 1)
-#ggplot(test, aes(x=test$LevelNo)) + geom_histogram(binwidth = 1)
+test %>% filter(Event == 'NextLevel') %>%
+  plot_ly() %>%
+  add_trace(x=~view_time, y=~total_played_time,type='scatter',mode='markers')
+
+  #ggplot(aes(x=as.numeric(view_time), y=as.numeric(total_played_time)))
 ```
   
   
