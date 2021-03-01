@@ -37,7 +37,7 @@ RetreiveDataSet <- function(tablename, column, colvalue) {
   return(df)
 }
 
-df <- RetreiveDataSet("infektionsdetektiven","NA","NA")
+df <- RetreiveDataSet("infektionsdetektiven_event","NA","NA")
 ```
 
 ## Introduction
@@ -50,7 +50,7 @@ We investigate whether how much time was spent looking at graphs and indicators 
 ```{r overview, echo=FALSE}
 overview <- df %>%
   summarize(
-    no_of_plays = length(unique(PlayID)),
+    no_of_plays = length(unique(SessionID)),
     played_from = min(Timestamp),
     played_to = max(Timestamp)
   )
@@ -87,7 +87,7 @@ df_grade5  <- df %>%
 
 ``` {r third-grade, echo=FALSE}
 summaries <- df_grade3 %>%
-  group_by(PlayID) %>%
+  group_by(SessionID) %>%
   summarize(
     played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
     levels_played = sum(Event == "GameInit"),
@@ -102,7 +102,7 @@ kable(summaries)
 
 ``` {r fourth-grade, echo=FALSE}
 summaries <- df_grade4 %>%
-  group_by(PlayID) %>%
+  group_by(SessionID) %>%
   summarize(
     played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
     levels_played = sum(Event == "GameInit"),
@@ -115,9 +115,9 @@ kable(summaries)
 
 ### Fifth Grade Data
 
-``` {r fifth-grade, echo=FALSE}
-summaries <- df_grade5 %>%
-  group_by(PlayID) %>%
+``` {r fifth-grade, echo=TRUE}
+summaries <- df %>%
+  group_by(SessionID) %>%
   summarize(
     played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
     levels_played = sum(Event == "GameInit"),
@@ -126,4 +126,16 @@ summaries <- df_grade5 %>%
     device_id = max(DeviceID),
   )
 kable(summaries)
+```
+
+``` {r plots-of-fifth-grade, echo=FALSE}
+
+df_SessionID1 <- df %>% select(Event, EventType)
+library(plotly)
+
+df %>%
+  plot_ly() %>%
+  add_trace(x=~SessionID, y=~NumberOfHealthy, color=I('black'), type='scatter', mode='markers')
+
+
 ```
