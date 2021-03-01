@@ -1,9 +1,9 @@
 library(RMySQL)
 
 mydb <- NULL
-db_table_meta <- "infektionsdetektiven_meta"
-db_table_event <- "infektionsdetektiven_event"
-db_table_sample <- "infektionsdetektiven_sample"
+db_table_meta <- "hammel_dec2020_meta_2"
+db_table_event <- "hammel_dec2020_event_2"
+db_table_sample <- "hammel_dec2020_sample_3"
 db_sessionid <- "NA"
 connected = FALSE
 
