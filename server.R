@@ -22,27 +22,14 @@ shinyServer(function(input, output) {
     
     
     db_data <- callModule(db_select, "selectData", connected)
-    csv_data <- callModule(csv_upload, "uploadData")
     callModule(data_selection_summary,"input_info", reactive(r$df))
+    callModule(plot_module_summary,"infection_spread", reactive(r$df))
     
-    observeEvent(csv_data$trigger, {
-        req(csv_data$trigger > 0)
-        r$df <- csv_data$df
-        r$source <- 'csv data'
-    })
+    
     observeEvent(db_data$trigger, {
         req(db_data$trigger > 0)
         r$df <- db_data$df
         r$source <- db_data$session
-    })
-    
-    observeEvent(input$CsvButton, {
-        insertUI(selector = "#CsvButton", where = "afterEnd",
-                 ui = showModal(modalDialog(csv_upload_UI("uploadData"), easyClose = TRUE)))
-    })
-    observeEvent(input$DbButton, {
-        insertUI(selector = "#DbButton", where = "afterEnd",
-                 ui = showModal(modalDialog(db_select_UI("selectData"), easyClose = TRUE)))
     })
     
 })

@@ -14,16 +14,16 @@ shinyUI(fluidPage(
     useShinyjs(debug=T),
     # Input ----------------
     fluidRow(
-        column(4, titlePanel("Data Management")),
+        column(4, titlePanel("Infection Detective Stats")),
     ),
     fluidRow(
         column(2, data_selection_summary_UI("input_info")),
-        column(3, actionButton("CsvButton","Manual Upload"),
-                  actionButton("DbButton", "Change Data"))
+        #column(3, actionButton("DbButton", "Change Data"))
     ),
     #  Output ----------------
     tabsetPanel(id = "dataTypeChooser", type = "tabs",
-        tabPanel(value  = "Data", id = "Timeline", strong("Data"),
+        tabPanel(value  = "Data", id = "Timeline", strong("InfectionSpread"),
+                 plot_module_UI("infection_spread")
         ),
         # Rest of Page ---------------------------------------------------------------
         tags$footer()
