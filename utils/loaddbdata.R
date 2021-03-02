@@ -1,9 +1,9 @@
 library(RMySQL)
 
 mydb <- NULL
-db_table_meta <- "hammel_dec2020_meta_2"
-db_table_event <- "hammel_dec2020_event_2"
-db_table_sample <- "hammel_dec2020_sample_3"
+db_table_meta <- "infektionsdetektiven_meta"
+db_table_event <- "infektionsdetektiven_event"
+db_table_sample <- "infektionsdetektiven_sample"
 db_sessionid <- "NA"
 connected = FALSE
 
@@ -70,11 +70,10 @@ RetreiveAllData <- function(type = "Full") {
   } else if (type == "Sample") {
     df = RetreiveDataSet(db_table_sample)
   } else if (type == "Full") {
-    df_event = RetreiveDataSet(db_table_event)
-    df_meta = RetreiveDataSet(db_table_meta)
-    df_sample = RetreiveDataSet(db_table_sample)
-    df_meta = PreprocessMeta(df_meta)
-    df = df_event %>% bind_rows(df_sample) %>% left_join(df_meta, by = "SessionID")
+    df_event <- RetreiveDataSet(db_table_event)
+    df_meta <- RetreiveDataSet(db_table_meta)
+    df_sample <- RetreiveDataSet(db_table_sample)
+    df <- df_event %>% bind_rows(df_sample) %>% left_join(df_meta, by = "SessionID", suffix=c(".Event",".Meta"))
   }
   return(df)
 }
@@ -92,8 +91,7 @@ RetreiveCurrentData <- function(type = "Full") {
     df_meta = RetreiveDataSet(db_table_meta, "SessionID", db_sessionid)
     df_sample = RetreiveDataSet(db_table_sample, "SessionID", db_sessionid)
     
-    df_meta = PreprocessMeta(df_meta)
-    df = df_event %>% bind_rows(df_sample) %>% left_join(df_meta, by = "SessionID")
+    df = df_event %>% bind_rows(df_sample) %>% left_join(df_meta, by = "SessionID", suffix=c(".Event",".Meta"))
   }
   return(df)
 }
@@ -135,12 +133,4 @@ MarkDataForDeletion <- function(tablename, column = "NA", colvalue= "NA", delete
   df = fetch(res, n=-1) 
   dbClearResult(dbListResults(mydb)[[1]])
   return(df)
-}
-
-PreprocessMeta <- function(dataset_meta) {
-  dataset_meta <- dataset_meta %>%
-    rename(MetaTimestamp = Timestamp,
-           MetaEmail = Email,
-           MetaFramecount = Framecount)
-  return(dataset_meta)
 }
