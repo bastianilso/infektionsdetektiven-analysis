@@ -39,7 +39,7 @@ RetreiveDataSet <- function(tablename, column, colvalue) {
   return(df)
 }
 
-df <- RetreiveDataSet("infektionsdetektiven","NA","NA")
+df <- RetreiveDataSet("infektionsdetektiven_event","NA","NA")
 ```
 
 ## Introduction
@@ -52,7 +52,7 @@ We investigate whether how much time was spent looking at graphs and indicators 
 ```{r overview, echo=FALSE}
 overview <- df %>%
   summarize(
-    no_of_plays = length(unique(PlayID)),
+    no_of_plays = length(unique(SessionID)),
     played_from = min(Timestamp),
     played_to = max(Timestamp)
   )
@@ -89,7 +89,7 @@ df_grade5  <- df %>%
 
 ``` {r third-grade, echo=FALSE}
 summaries <- df_grade3 %>%
-  group_by(PlayID) %>%
+  group_by(SessionID) %>%
   summarize(
     played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
     levels_played = sum(Event == "GameInit"),
@@ -104,7 +104,7 @@ kable(summaries)
 
 ``` {r fourth-grade, echo=FALSE}
 summaries <- df_grade4 %>%
-  group_by(PlayID) %>%
+  group_by(SessionID) %>%
   summarize(
     played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
     levels_played = sum(Event == "GameInit"),
@@ -117,9 +117,9 @@ kable(summaries)
 
 ### Fifth Grade Data
 
-``` {r fifth-grade, echo=FALSE}
-summaries <- df_grade5 %>%
-  group_by(PlayID) %>%
+``` {r fifth-grade, echo=TRUE}
+summaries <- df %>%
+  group_by(SessionID) %>%
   summarize(
     played_time = difftime(max(Timestamp), min(Timestamp), units = "min"),
     levels_played = sum(Event == "GameInit"),
@@ -284,5 +284,4 @@ theme_bw() + facet_grid(. ~ LevelNo) + labs(title ="all") + scale_y_continuous(n
 
 ## Thoughts on upper, middle, lower bracket plots
 In the upper/middle bracket, people seem to skip the stats page rather quickly, while the lower bracket are looking at the stats page a bit more. Could this be because the lower bracket would be looking for answers on the stats page on how to improve within the game?
-  
-  
+
