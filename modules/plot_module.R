@@ -19,7 +19,7 @@ plot_module_summary <- function(input, output, session, df) {
   ns <- session$ns
 
   output$infection_spread <- renderPlotly({
-    active_df = active_df %>% 
+    active_df = df() %>% 
       mutate(Timestamp.Event = as.POSIXct(Timestamp.Event, format = "%Y-%m-%d %H:%M:%OS")) %>%
       group_by(SessionID) %>%
       arrange(Timestamp.Event)
