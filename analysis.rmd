@@ -12,6 +12,8 @@ library(tidyr)
 library(dplyr)
 library(knitr)
 library(lubridate)
+library(ggplot2)
+library(data.table)
 options(digits.secs = 4) # enable millisecond display in console.
 creds <- read.csv("credentials.csv", header=TRUE,sep=",", colClasses=c("character","character","character","character"))
 lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
@@ -125,17 +127,161 @@ summaries <- df %>%
     level_reached = max(LevelNo),
     device_id = max(DeviceID),
   )
-kable(summaries)
+kable(summaries) 
 ```
 
-``` {r plots-of-fifth-grade, echo=FALSE}
+### Mutating variables
 
-df_SessionID1 <- df %>% select(Event, EventType)
-library(plotly)
+``` {r fifth-grade-stats, echo=FALSE}
+add_level_ID <- df_grade5 %>%
+  group_by(PlayID)%>%
+  mutate(
+    flag = (Event == 'NextLevel'),
+    levelBin = ifelse(flag,1,0),
+    levelID = cumsum(levelBin),
+    flag = NULL,
+    levelBin = NULL
+  ) %>% arrange(PlayID, Timestamp) %>% ungroup()
 
-df %>%
-  plot_ly() %>%
-  add_trace(x=~SessionID, y=~NumberOfHealthy, color=I('black'), type='scatter', mode='markers')
+df_nextleveltimestamp <- 
+  add_level_ID %>%
+  select(PlayID, LevelNo, Event, Timestamp) %>%
+  filter(Event == 'NextLevel') %>% 
+  rename(
+    next_level_stamp = Timestamp,
+  ) %>% select(-Event)
 
+df_merge <- add_level_ID %>% left_join(df_nextleveltimestamp)
+
+df_viewstats_summary <- 
+  df_merge %>%
+  select(PlayID, LevelNo, Event, Timestamp, next_level_stamp) %>%
+  filter(Event == "ViewingStatistics") %>%
+    mutate(
+      view_time = difftime(next_level_stamp, Timestamp, units= "sec"),
+      ) %>% select(-Event)
+
+df_grade5_merge <- df_merge %>% left_join(df_viewstats_summary)
+
+df_grade5_merge%<>%
+  group_by(PlayID)%>%
+    mutate(
+      max_level_reached = max(LevelNo),
+      total_played_time = difftime(max(Timestamp), min(Timestamp), units = "sec"),
+      player_id=group_indices(),
+      ) %>% arrange(PlayID, Timestamp)
+df_grade5_merge%>%filter(Event == 'NextLevel')
+p1<-ggplot(df_grade5_merge[df_grade5_merge$view_time<250 & df_grade5_merge$total_played_time<500,], aes(x=as.numeric(view_time), y=as.numeric(total_played_time), color=as.factor(player_id)))
+```
+
+
+# Plots
+
+
+```{r total-time-played-plot, echo=FALSE}
+p1 + geom_jitter(size=1, width=.1, height=.1) + 
+theme_bw() +
+labs(title="Total time played against statistics view time") +
+xlab("Stats view time") +
+ylab("Total time played") + 
+scale_y_log10()
 
 ```
+## Plot text
+
+
+```{r total-time-played-faceted-plot, echo=FALSE}
+p1 + geom_jitter(size=1) + 
+facet_grid(. ~ LevelNo) + 
+theme_bw() +
+labs(title="Facet of total time played against statistics view time",
+     subtitle="Facets are level number", 
+     caption="Stats view time values above 250 deemed to be idle, and filtered out") +
+xlab("Stats view time") + 
+ylab("Total time played") +
+scale_y_log10()
+```
+## Plot text
+
+```{r level-reached-plot, echo=FALSE}
+p2 <- ggplot(df_grade5_merge[df_grade5_merge$view_time<250,], aes(x=as.numeric(view_time), y=max_level_reached, color=as.factor(player_id)))
+
+p2 + geom_point(size=1, alpha=.3) + 
+theme_bw() +
+labs(title="Max level reached against statistics view time") + 
+xlab("Stats view time") + 
+ylab("Max level reached")
+```
+## Plot text
+  
+```{r, echo=FALSE}
+df_grade5_stars<-
+  df_grade5_merge %>% 
+  group_by(PlayID)%>%
+  select(PlayID, LevelNo, Event) %>%
+    summarise(
+      stars_amount_all = sum(Event =="GotInfectionStarAward", Event=="GotIsolationStarAward", Event=="GotVaccinationStarAward"),
+      stars1 = sum(Event == "GotInfectionStarAward"),
+      stars2 = sum(Event == "GotIsolationStarAward"),
+      stars3 = sum(Event == "GotVaccinationStarAward"),
+      stars4 = stars1 + stars2 + stars3,
+      reload_amount = sum(Event == "ReloadingLevel")
+      )
+
+df_grade5_final <- df_grade5_merge %>% merge(df_grade5_stars)
+
+med<-median(df_grade5_final$stars_amount_all)
+
+#er der nogle playID's som har klaret sig bedre -> infection(1), isolation(2) og vaccination(3) stars
+ggplot(df_grade5_final, aes(x=as.factor(player_id), y=stars_amount_all, color=as.factor(player_id))) + geom_point() + theme_bw()+ 
+geom_hline(aes(yintercept=med))
+
+df_grade5_viewstats<-
+  df_grade5_final %>%
+  filter(Event == "ViewingStatistics")
+
+#selecting upper half grade5 only
+df_grade5_upper<-
+  df_grade5_final %>% 
+  filter(Event == "ViewingStatistics" & stars_amount_all>med)
+
+#selecting middle ground grade5 only
+df_grade5_middle<-
+  df_grade5_final%>%
+  filter(Event == "ViewingStatistics" & stars_amount_all==med)
+
+#selecting lower half grade5 only
+df_grade5_lower<-
+  df_grade5_final%>%
+  filter(Event == "ViewingStatistics" & stars_amount_all<med)
+
+#view_stats mod levelno - viser hvor meget der er blevet kigget på stats efter hvert levelno
+ggplot(df_grade5_viewstats ,aes(x=LevelNo, y=as.numeric(view_time), color=as.factor(player_id))) + 
+geom_jitter(size=1) +
+theme_bw() + labs(title="all") + scale_x_continuous(name="Level", limits=c(0, 7)) + 
+scale_y_continuous(name="Statistics Viewtime", limits=c(0,100))
+
+ggplot(df_grade5_upper,aes(x=LevelNo, y=as.numeric(view_time), color=as.factor(player_id))) + 
+geom_jitter(size=1) +
+theme_bw() + labs(title="upper") + scale_x_continuous(name="Level", limits=c(0, 7)) + 
+scale_y_continuous(name="Statistics Viewtime", limits=c(0,100))
+
+ggplot(df_grade5_middle,aes(x=LevelNo, y=as.numeric(view_time), color=as.factor(player_id))) + 
+geom_jitter(size=1) +
+theme_bw() + labs(title="middle") + scale_x_continuous(name="Level", limits=c(0, 7)) + 
+scale_y_continuous(name="Statistics Viewtime", limits=c(0,100))
+
+ggplot(df_grade5_lower,aes(x=LevelNo, y=as.numeric(view_time), color=as.factor(player_id))) + 
+geom_jitter(size=1) +
+theme_bw() + labs(title="lower") + scale_x_continuous(name="Level", limits=c(0, 7)) + 
+scale_y_continuous(name="Statistics Viewtime", limits=c(0,100))
+
+#ReloadingLevel og levelno, kigger de mere på stats når de reloader spillet
+ggplot(df_grade5_viewstats, aes(x=reload_amount, y=as.numeric(view_time), color=as.factor(player_id))) + 
+geom_jitter(, size=1) + 
+theme_bw() + facet_grid(. ~ LevelNo) + labs(title ="all") + scale_y_continuous(name="Statistics Viewtime", limits=c(0,100))
+```
+
+## Thoughts on upper, middle, lower bracket plots
+In the upper/middle bracket, people seem to skip the stats page rather quickly, while the lower bracket are looking at the stats page a bit more. Could this be because the lower bracket would be looking for answers on the stats page on how to improve within the game?
+
