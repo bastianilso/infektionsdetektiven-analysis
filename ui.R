@@ -25,6 +25,9 @@ shinyUI(fluidPage(
         tabPanel(value  = "Data", id = "Timeline", strong("InfectionSpread"),
                  plot_module_UI("infection_spread")
         ),
+        tabPanel(value  = "Data", id = "Timeline", strong("Isolation"),
+                 plot_isolation_module_UI("isolation")
+        ),
         # Rest of Page ---------------------------------------------------------------
         tags$footer()
     )

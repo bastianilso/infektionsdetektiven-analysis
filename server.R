@@ -24,6 +24,7 @@ shinyServer(function(input, output) {
     db_data <- callModule(db_select, "selectData", connected)
     callModule(data_selection_summary,"input_info", reactive(r$df))
     callModule(plot_module_summary,"infection_spread", reactive(r$df))
+    callModule(plot_isolation_module,"isolation", reactive(r$df))
     
     
     observeEvent(db_data$trigger, {
