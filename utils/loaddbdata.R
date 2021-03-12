@@ -1,11 +1,9 @@
 library(RMySQL)
-
-mydb <- NULL
-db_table_meta <- "infektionsdetektiven_meta"
-db_table_event <- "infektionsdetektiven_event"
-db_table_sample <- "infektionsdetektiven_sample"
-db_sessionid <- "NA"
-connected = FALSE
+mydb <<- NULL
+db_table_meta <<- NULL
+db_table_event <<- NULL
+db_table_sample <<- NULL
+db_sessionid <<- "NA"
 
 SetTableMeta <- function(newname) {
   db_table_meta <<- newname
@@ -13,6 +11,10 @@ SetTableMeta <- function(newname) {
 
 SetTableEvent <- function(newname) {
   db_table_event <<- newname
+}
+
+SetTableSample <- function(newname) {
+  db_table_sample <<- newname
 }
 
 SetSessionID <- function(newID) {
@@ -23,21 +25,20 @@ GetSessionID <- function() {
   return(db_sessionid)
 }
 
-GetConnectedToServer <- function() {
-  return(connected)
-}
-
 ConnectToServer <- function(auth_data) {
+  SetTableMeta(auth_data[1, "table_meta"])
+  SetTableEvent(auth_data[1, "table_event"])
+  SetTableSample(auth_data[1, "table_sample"])
   connected = FALSE
   lapply( dbListConnections( dbDriver( drv = "MySQL")), dbDisconnect)
   tryCatch({
     mydb <<- dbConnect(MySQL(),
-                     user=auth_data[1, "username"],
-                     # rstudioapi::askForPassword("Database user"),
-                     password=auth_data[1, "password"],
-                     # rstudioapi::askForPassword("Database password"),
-                     dbname=auth_data[1, "dbname"],
-                     host=auth_data[1, "host"])
+                       user=auth_data[1, "username"],
+                       # rstudioapi::askForPassword("Database user"),
+                       password=auth_data[1, "password"],
+                       # rstudioapi::askForPassword("Database password"),
+                       dbname=auth_data[1, "dbname"],
+                       host=auth_data[1, "host"])
   },error=function(cond) {
     message("Could not connect to database.")
   },finally={

@@ -12,11 +12,8 @@ library(shiny)
 # Define server logic required to draw a histogram
 shinyServer(function(input, output) {
 
-    connected = GetConnectedToServer()
-    if (!connected) {
-        auth <- read.csv("credentials.csv", header=TRUE,sep=",", colClasses=c("character","character","character","character"))
-        connected = ConnectToServer(auth)
-    }
+    auth = read.csv("credentials.csv", header=TRUE,sep=",", colClasses=c("character"))
+    connected = ConnectToServer(auth)
     
     r <- reactiveValues(df = NULL, meta = NULL, source = NULL)
     
